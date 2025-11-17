@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu Financeiro - Controle Pessoal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark">MF</div>
+      <div class="logo-text">
+        <span class="logo-title">Meu Financeiro</span>
+        <span class="logo-subtitle">Controle pessoal inteligente</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="user-email" class="user-email hidden"></span>
+      <button id="logout-btn" class="btn-outline hidden">Sair</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Seção de Autenticação -->
+    <section id="auth-section" class="auth-section">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab active">Entrar</button>
+          <button id="tab-register" class="auth-tab">Criar conta</button>
+        </div>
+
+        <!-- Login -->
+        <form id="login-form" class="auth-form">
+          <h2>Bem-vindo de volta 👋</h2>
+          <p class="auth-subtitle">Acesse seu painel financeiro pessoal.</p>
+
+          <label class="field">
+            <span>E-mail</span>
+            <input type="email" id="login-email" required placeholder="seuemail@exemplo.com" />
+          </label>
+
+          <label class="field">
+            <span>Senha</span>
+            <input type="password" id="login-password" required placeholder="••••••••" />
+          </label>
+
+          <button type="submit" class="btn-primary full">Entrar</button>
+
+          <p class="auth-footer">
+            Não tem conta?
+            <button type="button" class="link-btn" id="to-register">Criar agora</button>
+          </p>
+
+          <p id="login-error" class="form-error"></p>
+        </form>
+
+        <!-- Cadastro -->
+        <form id="register-form" class="auth-form hidden">
+          <h2>Crie sua conta 💚</h2>
+          <p class="auth-subtitle">Organize suas finanças em qualquer lugar.</p>
+
+          <label class="field">
+            <span>E-mail</span>
+            <input type="email" id="register-email" required placeholder="seuemail@exemplo.com" />
+          </label>
+
+          <label class="field">
+            <span>Senha</span>
+            <input type="password" id="register-password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+          </label>
+
+          <button type="submit" class="btn-primary full">Criar conta</button>
+
+          <p class="auth-footer">
+            Já tem conta?
+            <button type="button" class="link-btn" id="to-login">Entrar</button>
+          </p>
+
+          <p id="register-error" class="form-error"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Seção do App -->
+    <section id="app-section" class="app-section hidden">
+      <div class="dashboard">
+        <header class="dashboard-header">
+          <div>
+            <h1>Visão geral</h1>
+            <p>Resumo das suas finanças pessoais.</p>
+          </div>
+          <div class="period-badge">
+            <span id="current-period">Hoje</span>
+          </div>
+        </header>
+
+        <!-- Cards de resumo -->
+        <div class="cards-grid">
+          <div class="card summary-card">
+            <div class="card-header">
+              <span>Saldo</span>
+            </div>
+            <div class="card-body">
+              <p class="summary-label">Total</p>
+              <p id="balance-amount" class="summary-value">R$ 0,00</p>
+            </div>
+          </div>
+
+          <div class="card summary-card">
+            <div class="card-header">
+              <span>Entradas</span>
+            </div>
+            <div class="card-body">
+              <p class="summary-label">Total</p>
+              <p id="income-amount" class="summary-value positive">R$ 0,00</p>
+            </div>
+          </div>
+
+          <div class="card summary-card">
+            <div class="card-header">
+              <span>Saídas</span>
+            </div>
+            <div class="card-body">
+              <p class="summary-label">Total</p>
+              <p id="expense-amount" class="summary-value negative">R$ 0,00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo principal -->
+        <div class="content-grid">
+          <!-- Formulário -->
+          <div class="card form-card">
+            <div class="card-header">
+              <span>Nova transação</span>
+            </div>
+            <div class="card-body">
+              <form id="transaction-form" class="transaction-form">
+                <div class="field-group">
+                  <label class="field">
+                    <span>Tipo</span>
+                    <select id="type" required>
+                      <option value="entrada">Entrada</option>
+                      <option value="saida">Saída</option>
+                    </select>
+                  </label>
+
+                  <label class="field">
+                    <span>Data</span>
+                    <input type="date" id="date" required />
+                  </label>
+                </div>
+
+                <label class="field">
+                  <span>Categoria</span>
+                  <input type="text" id="category" required placeholder="Ex: Salário, Mercado, Transporte..." />
+                </label>
+
+                <label class="field">
+                  <span>Descrição</span>
+                  <input type="text" id="description" placeholder="Opcional" />
+                </label>
+
+                <label class="field">
+                  <span>Valor</span>
+                  <input type="number" id="value" min="0" step="0.01" required placeholder="0,00" />
+                </label>
+
+                <button type="submit" class="btn-primary full">Salvar transação</button>
+                <p id="transaction-error" class="form-error"></p>
+                <p id="transaction-success" class="form-success"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Lista de transações -->
+          <div class="card list-card">
+            <div class="card-header">
+              <span>Transações recentes</span>
+            </div>
+            <div class="card-body table-wrapper">
+              <table class="transactions-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Categoria</th>
+                    <th>Descrição</th>
+                    <th class="right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="transactions-body">
+                  <!-- Linhas geradas via JS -->
+                </tbody>
+              </table>
+              <p id="empty-state" class="empty-state">Nenhuma transação cadastrada ainda.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore-compat.js"></script>
+
+  <!-- Configuração do Firebase (colocar suas chaves) -->
+  <script src="firebase-config.js"></script>
+  <!-- Lógica do app -->
+  <script src="app.js"></script>
+</body>
+</html>
