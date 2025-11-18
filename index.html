@@ -203,6 +203,119 @@
           </div>
         </div>
 
+                <!-- Resumo inteligente -->
+        <section class="smart-section">
+          <div class="smart-header">
+            <h2>Resumo inteligente</h2>
+            <p>Insights rápidos sobre suas finanças.</p>
+          </div>
+          <div class="smart-grid">
+            <div class="card smart-card">
+              <div class="card-header">
+                <span id="smart-month-label">Mês atual</span>
+              </div>
+              <div class="card-body smart-body">
+                <div class="smart-row">
+                  <span>Entradas no mês</span>
+                  <strong id="smart-month-income">R$ 0,00</strong>
+                </div>
+                <div class="smart-row">
+                  <span>Saídas no mês</span>
+                  <strong id="smart-month-expense">R$ 0,00</strong>
+                </div>
+                <div class="smart-row">
+                  <span>Economia do mês</span>
+                  <strong id="smart-month-saving">R$ 0,00</strong>
+                </div>
+                <div class="smart-row">
+                  <span>Variação vs mês anterior</span>
+                  <strong id="smart-month-change">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="card smart-card">
+              <div class="card-header">
+                <span>Destaques do período</span>
+              </div>
+              <div class="card-body smart-body">
+                <div class="smart-row">
+                  <span>Categoria com mais gastos</span>
+                  <strong id="smart-top-category">—</strong>
+                </div>
+                <div class="smart-row">
+                  <span>Maior despesa</span>
+                  <strong id="smart-top-expense">—</strong>
+                </div>
+                <div class="smart-row">
+                  <span>Quantidade de transações</span>
+                  <strong id="smart-tx-count">0</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Metas financeiras -->
+        <section class="goals-section">
+          <div class="goals-header">
+            <h2>Metas financeiras</h2>
+            <p>Defina objetivos e acompanhe seu progresso.</p>
+          </div>
+
+          <div class="goals-grid">
+            <!-- Formulário de nova meta -->
+            <div class="card form-card">
+              <div class="card-header">
+                <span>Nova meta</span>
+              </div>
+              <div class="card-body">
+                <form id="goal-form" class="goal-form">
+                  <label class="field">
+                    <span>Nome da meta</span>
+                    <input type="text" id="goal-name" required placeholder="Ex: Reserva de emergência" />
+                  </label>
+
+                  <div class="field-group">
+                    <label class="field">
+                      <span>Valor objetivo (R$)</span>
+                      <input type="number" id="goal-target" min="0" step="0.01" required placeholder="0,00" />
+                    </label>
+
+                    <label class="field">
+                      <span>Valor atual (R$)</span>
+                      <input type="number" id="goal-current" min="0" step="0.01" placeholder="0,00" />
+                    </label>
+                  </div>
+
+                  <label class="field">
+                    <span>Data limite (opcional)</span>
+                    <input type="date" id="goal-deadline" />
+                  </label>
+
+                  <button type="submit" class="btn-primary full">Salvar meta</button>
+                  <p id="goal-error" class="form-error"></p>
+                  <p id="goal-success" class="form-success"></p>
+                </form>
+              </div>
+            </div>
+
+            <!-- Lista de metas -->
+            <div class="card goals-list-card">
+              <div class="card-header">
+                <span>Suas metas</span>
+              </div>
+              <div class="card-body goals-list-body">
+                <div id="goals-list">
+                  <!-- Metas via JS -->
+                </div>
+                <p id="goals-empty" class="empty-state">Nenhuma meta cadastrada ainda.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
       </div>
     </section>
   </main>

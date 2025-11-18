@@ -32,9 +32,31 @@ const expenseAmountEl = document.getElementById("expense-amount");
 const dateInput = document.getElementById("date");
 const currentPeriodEl = document.getElementById("current-period");
 
+// Resumo inteligente
+const smartMonthLabelEl = document.getElementById("smart-month-label");
+const smartMonthIncomeEl = document.getElementById("smart-month-income");
+const smartMonthExpenseEl = document.getElementById("smart-month-expense");
+const smartMonthSavingEl = document.getElementById("smart-month-saving");
+const smartMonthChangeEl = document.getElementById("smart-month-change");
+const smartTopCategoryEl = document.getElementById("smart-top-category");
+const smartTopExpenseEl = document.getElementById("smart-top-expense");
+const smartTxCountEl = document.getElementById("smart-tx-count");
+
+// Metas financeiras
+const goalForm = document.getElementById("goal-form");
+const goalNameInput = document.getElementById("goal-name");
+const goalTargetInput = document.getElementById("goal-target");
+const goalCurrentInput = document.getElementById("goal-current");
+const goalDeadlineInput = document.getElementById("goal-deadline");
+const goalErrorEl = document.getElementById("goal-error");
+const goalSuccessEl = document.getElementById("goal-success");
+const goalsListEl = document.getElementById("goals-list");
+const goalsEmptyEl = document.getElementById("goals-empty");
+
 // Estado
 let currentUser = null;
 let unsubscribeTransactions = null;
+let unsubscribeGoals = null;
 
 /* Utilidades */
 
@@ -193,6 +215,7 @@ auth.onAuthStateChanged((user) => {
     userEmailEl.classList.remove("hidden");
     logoutBtn.classList.remove("hidden");
     subscribeToTransactions();
+    subscribeToGoals();
   } else {
     // Não logado
     authSection.classList.remove("hidden");
@@ -201,19 +224,31 @@ auth.onAuthStateChanged((user) => {
     logoutBtn.classList.add("hidden");
     userEmailEl.textContent = "";
     clearTransactionsUI();
+    clearGoalsUI();
     if (unsubscribeTransactions) {
       unsubscribeTransactions();
       unsubscribeTransactions = null;
     }
+    if (unsubscribeGoals) {
+      unsubscribeGoals();
+      unsubscribeGoals = null;
+    }
   }
 });
 
-/* Firestore: transações */
+/* Firestore: referências */
 
 function getUserTransactionsRef() {
   if (!currentUser) return null;
   return db.collection("users").doc(currentUser.uid).collection("transactions");
 }
+
+function getUserGoalsRef() {
+  if (!currentUser) return null;
+  return db.collection("users").doc(currentUser.uid).collection("goals");
+}
+
+/* Transações */
 
 function clearTransactionsUI() {
   transactionsBody.innerHTML = "";
@@ -221,6 +256,16 @@ function clearTransactionsUI() {
   balanceAmountEl.textContent = "R$ 0,00";
   incomeAmountEl.textContent = "R$ 0,00";
   expenseAmountEl.textContent = "R$ 0,00";
+
+  if (smartMonthLabelEl) {
+    smartMonthIncomeEl.textContent = "R$ 0,00";
+    smartMonthExpenseEl.textContent = "R$ 0,00";
+    smartMonthSavingEl.textContent = "R$ 0,00";
+    smartMonthChangeEl.textContent = "—";
+    smartTopCategoryEl.textContent = "—";
+    smartTopExpenseEl.textContent = "—";
+    smartTxCountEl.textContent = "0";
+  }
 }
 
 // Escuta em tempo real as transações
@@ -234,12 +279,15 @@ function subscribeToTransactions() {
 
   unsubscribeTransactions = ref
     .orderBy("date", "desc")
-    .onSnapshot((snapshot) => {
-      const docs = snapshot.docs;
-      renderTransactions(docs);
-    }, (error) => {
-      console.error("Erro ao ouvir transações:", error);
-    });
+    .onSnapshot(
+      (snapshot) => {
+        const docs = snapshot.docs;
+        renderTransactions(docs);
+      },
+      (error) => {
+        console.error("Erro ao ouvir transações:", error);
+      }
+    );
 }
 
 function renderTransactions(docs) {
@@ -250,6 +298,21 @@ function renderTransactions(docs) {
     balanceAmountEl.textContent = "R$ 0,00";
     incomeAmountEl.textContent = "R$ 0,00";
     expenseAmountEl.textContent = "R$ 0,00";
+
+    if (smartMonthLabelEl) {
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      smartMonthLabelEl.textContent = `Mês atual (${mm}/${yyyy})`;
+      smartMonthIncomeEl.textContent = "R$ 0,00";
+      smartMonthExpenseEl.textContent = "R$ 0,00";
+      smartMonthSavingEl.textContent = "R$ 0,00";
+      smartMonthChangeEl.textContent = "—";
+      smartTopCategoryEl.textContent = "—";
+      smartTopExpenseEl.textContent = "—";
+      smartTxCountEl.textContent = "0";
+    }
+
     return;
   }
 
@@ -257,6 +320,23 @@ function renderTransactions(docs) {
 
   let totalIncome = 0;
   let totalExpense = 0;
+
+  // Para resumo inteligente
+  const now = new Date();
+  const curMonth = now.getMonth();
+  const curYear = now.getFullYear();
+  const prevMonthDate = new Date(curYear, curMonth - 1, 1);
+  const prevMonth = prevMonthDate.getMonth();
+  const prevYear = prevMonthDate.getFullYear();
+
+  let monthIncome = 0;
+  let monthExpense = 0;
+  let prevMonthIncome = 0;
+  let prevMonthExpense = 0;
+  let txCount = docs.length;
+  const categoryTotals = {};
+  let maxExpenseValue = 0;
+  let maxExpenseLabel = null;
 
   docs.forEach((doc) => {
     const data = doc.data();
@@ -272,6 +352,7 @@ function renderTransactions(docs) {
       totalExpense += value;
     }
 
+    // HTML da tabela
     const tr = document.createElement("tr");
 
     const tdDate = document.createElement("td");
@@ -300,6 +381,33 @@ function renderTransactions(docs) {
     tr.appendChild(tdValue);
 
     transactionsBody.appendChild(tr);
+
+    // Cálculos para resumo inteligente
+    if (date) {
+      const m = date.getMonth();
+      const y = date.getFullYear();
+
+      if (y === curYear && m === curMonth) {
+        if (type === "entrada") {
+          monthIncome += value;
+        } else if (type === "saida") {
+          monthExpense += value;
+          categoryTotals[category] =
+            (categoryTotals[category] || 0) + value;
+
+          if (value > maxExpenseValue) {
+            maxExpenseValue = value;
+            maxExpenseLabel = `${category} (${formatMoney(value)})`;
+          }
+        }
+      } else if (y === prevYear && m === prevMonth) {
+        if (type === "entrada") {
+          prevMonthIncome += value;
+        } else if (type === "saida") {
+          prevMonthExpense += value;
+        }
+      }
+    }
   });
 
   const balance = totalIncome - totalExpense;
@@ -307,6 +415,42 @@ function renderTransactions(docs) {
   incomeAmountEl.textContent = formatMoney(totalIncome);
   expenseAmountEl.textContent = formatMoney(totalExpense);
   balanceAmountEl.textContent = formatMoney(balance);
+
+  // Atualiza resumo inteligente
+  if (smartMonthLabelEl) {
+    const mm = String(curMonth + 1).padStart(2, "0");
+    smartMonthLabelEl.textContent = `Mês atual (${mm}/${curYear})`;
+
+    const monthSaving = monthIncome - monthExpense;
+    const prevSaving = prevMonthIncome - prevMonthExpense;
+
+    smartMonthIncomeEl.textContent = formatMoney(monthIncome);
+    smartMonthExpenseEl.textContent = formatMoney(monthExpense);
+    smartMonthSavingEl.textContent = formatMoney(monthSaving);
+
+    let changeText = "—";
+    if (prevSaving !== 0) {
+      const diff = monthSaving - prevSaving;
+      const perc = (diff / Math.abs(prevSaving)) * 100;
+      const sign = perc > 0 ? "+" : "";
+      changeText = `${sign}${perc.toFixed(1)}%`;
+    }
+    smartMonthChangeEl.textContent = changeText;
+
+    // Categoria com mais gastos
+    let topCategory = "—";
+    let topCategoryValue = 0;
+    Object.keys(categoryTotals).forEach((cat) => {
+      if (categoryTotals[cat] > topCategoryValue) {
+        topCategoryValue = categoryTotals[cat];
+        topCategory = `${cat} (${formatMoney(categoryTotals[cat])})`;
+      }
+    });
+
+    smartTopCategoryEl.textContent = topCategory;
+    smartTopExpenseEl.textContent = maxExpenseLabel || "—";
+    smartTxCountEl.textContent = String(txCount);
+  }
 }
 
 /* Formulário de nova transação */
@@ -377,3 +521,215 @@ transactionForm.addEventListener("submit", async (e) => {
     toggleLoading(submitBtn, false);
   }
 });
+
+/* Metas financeiras */
+
+function clearGoalsUI() {
+  if (!goalsListEl || !goalsEmptyEl) return;
+  goalsListEl.innerHTML = "";
+  goalsEmptyEl.classList.remove("hidden");
+}
+
+function subscribeToGoals() {
+  if (!currentUser || !goalsListEl) return;
+  const ref = getUserGoalsRef();
+
+  if (unsubscribeGoals) {
+    unsubscribeGoals();
+  }
+
+  unsubscribeGoals = ref
+    .orderBy("createdAt", "asc")
+    .onSnapshot(
+      (snapshot) => {
+        const docs = snapshot.docs;
+        renderGoals(docs);
+      },
+      (error) => {
+        console.error("Erro ao ouvir metas:", error);
+      }
+    );
+}
+
+function renderGoals(docs) {
+  if (!goalsListEl || !goalsEmptyEl) return;
+
+  goalsListEl.innerHTML = "";
+
+  if (!docs || docs.length === 0) {
+    goalsEmptyEl.classList.remove("hidden");
+    return;
+  }
+
+  goalsEmptyEl.classList.add("hidden");
+
+  docs.forEach((doc) => {
+    const data = doc.data();
+    const id = doc.id;
+    const name = data.name || "Meta sem nome";
+    const targetValue = Number(data.targetValue) || 0;
+    const currentValue = Number(data.currentValue) || 0;
+    const deadline =
+      data.deadline && data.deadline.toDate ? data.deadline.toDate() : null;
+
+    const percent =
+      targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+
+    const goalItem = document.createElement("div");
+    goalItem.classList.add("goal-item");
+    if (percent >= 100) {
+      goalItem.classList.add("completed");
+    }
+
+    const header = document.createElement("div");
+    header.classList.add("goal-item-header");
+
+    const nameEl = document.createElement("div");
+    nameEl.classList.add("goal-name");
+    nameEl.textContent = name;
+
+    const deadlineEl = document.createElement("div");
+    deadlineEl.classList.add("goal-deadline");
+    deadlineEl.textContent = deadline
+      ? `Até ${formatDate(deadline)}`
+      : "Sem data limite";
+
+    header.appendChild(nameEl);
+    header.appendChild(deadlineEl);
+
+    const progressText = document.createElement("div");
+    progressText.classList.add("goal-progress-text");
+    progressText.textContent = `${formatMoney(
+      currentValue
+    )} de ${formatMoney(targetValue)} (${percent.toFixed(1)}%)`;
+
+    const bar = document.createElement("div");
+    bar.classList.add("goal-progress-bar");
+
+    const fill = document.createElement("div");
+    fill.classList.add("goal-progress-fill");
+    fill.style.width = `${percent}%`;
+    bar.appendChild(fill);
+
+    const footer = document.createElement("div");
+    footer.classList.add("goal-meta-footer");
+
+    const status = document.createElement("div");
+    status.classList.add("goal-status");
+    if (percent >= 100) {
+      status.classList.add("completed");
+      status.textContent = "Meta concluída 🎉";
+    } else {
+      status.textContent = "Em andamento";
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.classList.add("goal-delete-btn");
+    deleteBtn.textContent = "Excluir";
+    deleteBtn.dataset.id = id;
+
+    footer.appendChild(status);
+    footer.appendChild(deleteBtn);
+
+    goalItem.appendChild(header);
+    goalItem.appendChild(progressText);
+    goalItem.appendChild(bar);
+    goalItem.appendChild(footer);
+
+    goalsListEl.appendChild(goalItem);
+  });
+}
+
+// Formulário de nova meta
+if (goalForm) {
+  goalForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      goalErrorEl.textContent = "Você precisa estar logado para salvar.";
+      return;
+    }
+
+    goalErrorEl.textContent = "";
+    goalSuccessEl.textContent = "";
+
+    const name = goalNameInput.value.trim();
+    const targetStr = goalTargetInput.value;
+    const currentStr = goalCurrentInput.value;
+    const deadlineStr = goalDeadlineInput.value;
+
+    if (!name || !targetStr) {
+      goalErrorEl.textContent = "Preencha o nome da meta e o valor objetivo.";
+      return;
+    }
+
+    const targetValue = parseFloat(targetStr.replace(",", "."));
+    let currentValue = 0;
+    if (currentStr) {
+      currentValue = parseFloat(currentStr.replace(",", "."));
+    }
+
+    if (isNaN(targetValue) || targetValue <= 0) {
+      goalErrorEl.textContent = "Informe um valor objetivo válido maior que zero.";
+      return;
+    }
+    if (isNaN(currentValue) || currentValue < 0) {
+      goalErrorEl.textContent = "Informe um valor atual válido.";
+      return;
+    }
+
+    let deadlineDate = null;
+    if (deadlineStr) {
+      const [yyyy, mm, dd] = deadlineStr.split("-");
+      deadlineDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    }
+
+    const submitBtn = goalForm.querySelector("button[type='submit']");
+    toggleLoading(submitBtn, true);
+
+    try {
+      const ref = getUserGoalsRef();
+      await ref.add({
+        name,
+        targetValue,
+        currentValue,
+        deadline: deadlineDate || null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      goalSuccessEl.textContent = "Meta salva com sucesso!";
+      goalForm.reset();
+
+      setTimeout(() => {
+        goalSuccessEl.textContent = "";
+      }, 2500);
+    } catch (error) {
+      console.error("Erro ao salvar meta:", error);
+      goalErrorEl.textContent =
+        "Não foi possível salvar a meta. Tente novamente.";
+    } finally {
+      toggleLoading(submitBtn, false);
+    }
+  });
+}
+
+// Delegação de evento para excluir meta
+if (goalsListEl) {
+  goalsListEl.addEventListener("click", async (e) => {
+    const target = e.target;
+    if (target.classList.contains("goal-delete-btn")) {
+      const id = target.dataset.id;
+      if (!id) return;
+
+      const confirmar = confirm("Deseja realmente excluir esta meta?");
+      if (!confirmar) return;
+
+      try {
+        const ref = getUserGoalsRef();
+        await ref.doc(id).delete();
+      } catch (error) {
+        console.error("Erro ao excluir meta:", error);
+        alert("Não foi possível excluir a meta. Tente novamente.");
+      }
+    }
+  });
+}
